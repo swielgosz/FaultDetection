@@ -1,2 +1,7 @@
-.venv/Lib/site-packages/__pycache__/pylab.cpython-312.pyc
-.venv/pyvenv.cfg
+# Large dataset
+dataset.csv
+
+# Environments
+.venv
+
+*.pyc
