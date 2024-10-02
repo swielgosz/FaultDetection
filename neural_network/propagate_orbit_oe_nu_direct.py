@@ -27,13 +27,13 @@ print(tf.__version__)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(script_dir, "../datasets/dataset_oe.npy")
 data_np = np.load(data_path)
-data_np = data_np[:-1]
 data = pd.DataFrame(
     data_np, columns=["t", "a", "e", "i", "RAAN", "w", "nu"]
 )  # convert to data frame
-# data.iloc[-1]=360.0
+
 nu_record = data[["nu"]]
 t_max = data[['t']].max().values[0]
+
 # Load cartesian data for plotting
 cartesian_data_path = os.path.join(script_dir, "../datasets/dataset_cartesian.npy")
 cartesian_data_np = np.load(cartesian_data_path)
@@ -50,22 +50,11 @@ w = data_np[0, 5]  # Argument of periapsis
 # Separate features and labels
 features = data[["t"]]
 labels = data[["nu"]]
-# labels.iloc[-1] = 360.0
 
 # Split data into train and test sets
-# train_data = data.sample(frac=0.8, random_state=0)
-# test_data = data.drop(train_data.index)
-
-# Select the first 100 and last 100 samples from the dataset
-first_100_samples = data.head(10)
-last_100_samples = data.tail(10)
-
-# Combine the first 100, last 100, and a random 80% split of the remaining data for training
-train_data = data.sample(frac=0.8, random_state=0)  # random 80% sample
-train_data = pd.concat([first_100_samples, train_data, last_100_samples]).drop_duplicates()
-
-# Ensure test data doesn't overlap with training data
+train_data = data.sample(frac=0.8, random_state=0)
 test_data = data.drop(train_data.index)
+
 # Separate features from labels
 train_features = train_data[["t"]]
 train_labels = train_data[["nu"]]
