@@ -4,7 +4,8 @@ from . import constants
 from . import coordinate_conversions
 import math
 
-def propagate_2BP(t, X, mu=constants.MU_EARTH): 
+
+def propagate_2BP(t, X, mu=constants.MU_EARTH):
     """State space representation of Newton's Law of Gravitation
         Selected state variables are [r_x, r_y, r_z, v_x, v_y, v_z]
 
@@ -42,16 +43,17 @@ def calculate_orbit(r, v, tof, mu=constants.MU_EARTH):
 
     init_state = np.array([r[0], r[1], r[2], v[0], v[1], v[2]])
     tol = 10**-13
+    t_eval = np.linspace(0, tof, 10000)
 
     sol = solve_ivp(
         propagate_2BP,
-        [0, tof],
+        (0, tof),
         init_state,
         method="RK45",
         atol=tol,
         rtol=tol,
-        t_eval=np.linspace(0, tof, 1000),
-        args=(mu,)
+        t_eval=np.linspace(0, tof, 10000),
+        args=(mu,),
     )
 
     # Convert Cartesian coordinates to orbital elements for each timestep
@@ -62,7 +64,11 @@ def calculate_orbit(r, v, tof, mu=constants.MU_EARTH):
         ]
     )
 
-    return sol, orbital_elements
+    # Extract Cartesian state vectors (position and velocity) for each timestep
+    cartesian_sol = np.array([sol.y[:, i] for i in range(len(sol.t))])
+
+    return sol, cartesian_sol, orbital_elements
+
 
 def calculate_orbital_period(a, mu=constants.MU_EARTH):
     """Calculates orbital period of an orbit.
@@ -74,4 +80,4 @@ def calculate_orbital_period(a, mu=constants.MU_EARTH):
     Returns:
         float: Orbital period in seconds
     """
-    return 2 * math.pi * math.sqrt(a ** 3 / mu )
+    return 2 * math.pi * math.sqrt(a**3 / mu)
