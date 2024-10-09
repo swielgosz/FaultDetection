@@ -222,6 +222,29 @@ plt.show()
 train_loss = dnn_model.evaluate(train_features, train_labels, verbose=0)
 test_loss = dnn_model.evaluate(test_features, test_labels, verbose=0)
 
-print(f'Training Loss: {train_loss}')
-print(f'Test Loss: {test_loss}')
-# %%
+# best_seed = None
+# best_loss = float('inf')
+# seed_range = range(10)  # You can adjust this range to explore more seeds
+
+# for seed in seed_range:
+#     set_global_determinism(seed=seed)
+#     dnn_model = build_and_compile_model(input_shape_)
+#     history = dnn_model.fit(
+#         train_features,
+#         train_labels,
+#         validation_split=0.2,
+#         verbose=0,
+#         epochs=50,
+#         batch_size=BATCH_SIZE,
+#         shuffle=False,
+#     )
+
+#     # Evaluate the model
+#     test_loss = dnn_model.evaluate(test_features, test_labels, verbose=0)
+#     print(f"Seed: {seed}, Test Loss: {test_loss}")
+
+#     if test_loss < best_loss:
+#         best_loss = test_loss
+#         best_seed = seed
+
+# print(f"Best Seed: {best_seed}, Best Loss: {best_loss}")
