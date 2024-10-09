@@ -120,6 +120,8 @@ plot_loss(history)
 
 # %%
 # Test with specified conditions
+
+
 def test_model():
     # Define the initial conditions
     a = 15000 + constants.RADIUS_EARTH  # Semi-major axis in km
@@ -135,30 +137,46 @@ def test_model():
 
     # Prepare features for all time steps
     features = []
+    constant_oe = []
     for time in time_steps:
         cos_nu0 = np.cos(nu)
         sin_nu0 = np.sin(nu)
 
-        feature_vector = np.array([time, a, e, np.rad2deg(i), np.rad2deg(raan), np.rad2deg(w), cos_nu0, sin_nu0])
+        feature_vector = np.array([time, a, e, i, raan, w, cos_nu0, sin_nu0])
         features.append(feature_vector)
+        constant_oe_vector = np.array(
+            [a, e, np.rad2deg(i), np.rad2deg(raan), np.rad2deg(w)]
+        )
+        constant_oe.append(constant_oe_vector)
 
     features = np.array(features)
-    features_normalized = feature_scaler.transform(features)  # Normalize the inputs
+    features = pd.DataFrame(features)
+    constant_oe = np.array(constant_oe)
 
-    # Make predictions for all time steps
+    features_normalized = feature_scaler.transform(features.iloc[:, [0, 1]])
+    features_normalized = pd.DataFrame(
+        features_normalized, columns=[features.columns[0], features.columns[1]]
+    )
+    if features.shape[1] > 2:  # Check if there are additional columns
+        features_normalized = pd.concat(
+            [features_normalized, features.iloc[:, 2:]], axis=1
+        )
+
+    # Predict true anomaly
     predictions_scaled = dnn_model.predict(features_normalized)
     sin_nu_pred, cos_nu_pred = predictions_scaled[:, 0], predictions_scaled[:, 1]
-    predictions_nu = np.rad2deg(np.arctan2(sin_nu_pred, cos_nu_pred))  # get nu back in degrees
+    predictions_nu = np.rad2deg(
+        np.arctan2(sin_nu_pred, cos_nu_pred)
+    )  # get nu back in degrees
     predictions_nu = np.where(predictions_nu < 0, predictions_nu + 360, predictions_nu)
 
-    # Concatenate predictions_scaled (all but last two columns) with predictions_nu
-    predictions_combined = np.concatenate([predictions_scaled[:, :-2], predictions_nu[:, np.newaxis]], axis=1)
-
-    # Combine with time steps
-    time_vector = time_steps[:, np.newaxis]  # Reshape for concatenation
-    predictions_with_time = np.hstack((time_vector, predictions_combined))  # Add time as the first column
+    # Concatenate predictions
+    predictions = np.concatenate((constant_oe, predictions_nu[:, np.newaxis]), axis=1)
+    time_vector = time_steps[:, np.newaxis]
+    predictions_with_time = np.hstack((time_vector, predictions))
 
     return predictions_with_time
+
 
 # Get predictions
 predictions = test_model()
