@@ -1,6 +1,7 @@
-#%%
+# %%
 import sys
 import os
+
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -13,7 +14,7 @@ from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 from astro import coordinate_conversions, constants, astro_calcs, visualization
 
-#%%
+# %%
 # Load data from .npy file
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(script_dir, "../datasets/dataset_generalized.npy")
@@ -74,6 +75,7 @@ train_features.iloc[:, [0, 1]] = feature_scaler.fit_transform(
     train_features.iloc[:, [0, 1]]
 )
 test_features.iloc[:, [0, 1]] = feature_scaler.transform(test_features.iloc[:, [0, 1]])
+
 
 # Define and compile the model
 def build_and_compile_model(input_shape_):
@@ -180,8 +182,8 @@ def test_model():
 
 # Get predictions
 predictions = test_model()
-# %% Visualize results
 
+# %% Visualize results
 
 # Convert predictions to Cartesian coordinates for plotting
 def convert_predictions_to_cartesian(predicted_orbital_elements):
