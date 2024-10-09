@@ -158,18 +158,13 @@ def plot_loss(history):
 plot_loss(history)
 
 # Create time array and reshape to 2D array
-time_ = np.linspace(0, t_max, 10000).reshape(-1, 1)
-time_ = time_[:-1]
+time_ = np.linspace(0, t_max, len(data[["t"]])).reshape(-1, 1)
 
 # Convert to DataFrame with the same column name as used during scaling
 time_df = pd.DataFrame(time_, columns=["t"])
 
 # Normalize the time data
-time_scaled = pd.DataFrame(
-    feature_scaler.transform(time_df), columns=["t"]
-)
-print("Sample of time scaled data:", feature_scaler.inverse_transform(time_scaled))
-print(t_max)
+time_scaled = pd.DataFrame(feature_scaler.transform(time_df), columns=["t"])
 predictions_scaled = dnn_model.predict(time_scaled)
 predictions = label_scaler.inverse_transform(predictions_scaled)
 
