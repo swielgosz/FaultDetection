@@ -80,13 +80,14 @@ def build_and_compile_model(input_shape_):
     model = keras.Sequential(
         [
             tf.keras.layers.Flatten(input_shape=(input_shape_,)),
-            layers.Dense(64, activation="relu"),
-            layers.Dense(64, activation="relu"),
-            layers.Dense(7),  # Predicting two values: sin_nu and cos_nu
+            layers.Dense(16, activation="relu"),
+            layers.Dense(16, activation="relu"),
+            layers.Dense(2),  # Predicting two values: sin_nu and cos_nu
         ]
     )
-    model.compile(loss="mse", optimizer=tf.keras.optimizers.Adam(0.001))
+    model.compile(loss="mean_absolute_error", optimizer=tf.keras.optimizers.Adam(0.001))
     return model
+
 
 input_shape_ = train_features.shape[1]
 dnn_model = build_and_compile_model(input_shape_)
