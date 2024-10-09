@@ -104,6 +104,7 @@ history = dnn_model.fit(
     batch_size=BATCH_SIZE,
 )
 
+
 # Plot training loss
 def plot_loss(history):
     plt.plot(history.history["loss"], label="loss")
@@ -113,6 +114,7 @@ def plot_loss(history):
     plt.legend()
     plt.grid(True)
     plt.show()
+
 
 plot_loss(history)
 
