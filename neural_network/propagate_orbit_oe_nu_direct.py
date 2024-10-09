@@ -2,6 +2,7 @@
 
 import sys
 import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from astro import visualization, coordinate_conversions
@@ -19,6 +20,7 @@ print(tf.__version__)
 
 # %%
 SEED = 8
+
 
 def set_seeds(seed=SEED):
     os.environ["PYTHONHASHSEED"] = str(seed)
@@ -106,7 +108,7 @@ test_labels = pd.DataFrame(
 def periodic_loss(y_true, y_pred):
     error = tf.abs(y_true - y_pred)
     # Minimize the angular error considering the wraparound at 360 degrees
-    error = tf.minimum(error, 360.0 - error)  
+    error = tf.minimum(error, 360.0 - error)
     return tf.reduce_mean(error)
 
 
@@ -136,7 +138,7 @@ BATCH_SIZE = 500
 history = dnn_model.fit(
     train_features,
     train_labels,
-    validation_split=0.2, # if validation split is low (~0.1), results are very bad (error is ~100 deg instead of ~50 at beginning/end of orbit)
+    validation_split=0.2,  # if validation split is low (~0.1), results are very bad (error is ~100 deg instead of ~50 at beginning/end of orbit)
     verbose=1,
     epochs=200,
     batch_size=BATCH_SIZE,
@@ -190,10 +192,10 @@ error = predictions - nu_record
 #         error[idx] = 360 - abs(error[idx])
 
 plt.figure(figsize=(10, 6))
-plt.scatter(nu_record, error, alpha=0.5, edgecolors='k')
-plt.xlabel('True Values (nu)')
-plt.ylabel('Prediction Error')
-plt.title('Prediction Error vs. True Values')
+plt.plot(nu_record, error)
+plt.xlabel("True Values (nu)")
+plt.ylabel("Prediction Error")
+plt.title("Prediction Error vs. True Values")
 plt.grid(True)
 plt.show()
 
@@ -202,10 +204,10 @@ time = np.linspace(
 )  # Create a time array if not already available
 
 plt.figure(figsize=(10, 6))
-plt.plot(time, error, label='Prediction Error')
-plt.xlabel('Time')
-plt.ylabel('Prediction Error')
-plt.title('Prediction Error Over Time')
+plt.plot(time, error, label="Prediction Error")
+plt.xlabel("Time")
+plt.ylabel("Prediction Error")
+plt.title("Prediction Error Over Time")
 plt.legend()
 plt.grid(True)
 plt.show()
