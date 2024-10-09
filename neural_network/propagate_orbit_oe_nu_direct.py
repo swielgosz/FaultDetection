@@ -119,18 +119,10 @@ def build_and_compile_model(input_shape_):
             layers.Dense(16, activation="relu"),
             layers.Dense(16, activation="relu"),
             layers.Dense(16, activation="relu"),
-            # layers.Dense(32, activation="relu"),
-            # layers.Dense(32, activation="relu"),
-            # layers.Dense(16, activation="relu"),
-            # layers.Dense(8, activation="relu"),
-            # layers.Dense(32, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.001)),
-            # layers.Dense(32, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.001)),
-            # layers.Dense(32, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.001)),
-            # layers.Dense(16, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.001)),
             layers.Dense(1),
         ]
     )
-    model.compile(loss=periodic_loss, optimizer=tf.keras.optimizers.Adam(0.001))
+    model.compile(loss="mean_absolute_error", optimizer=tf.keras.optimizers.Adam(0.001))
     return model
 
 
@@ -145,8 +137,9 @@ history = dnn_model.fit(
     train_labels,
     validation_split=0.2, # if validation split is low (~0.1), results are very bad (error is ~100 deg instead of ~50 at beginning/end of orbit)
     verbose=1,
-    epochs=100,
+    epochs=200,
     batch_size=BATCH_SIZE,
+    shuffle=False,
 )
 
 # %%
