@@ -84,6 +84,8 @@ def build_and_compile_model(input_shape_):
             tf.keras.layers.Flatten(input_shape=(input_shape_,)),
             layers.Dense(16, activation="relu"),
             layers.Dense(16, activation="relu"),
+            layers.Dense(16, activation="relu"),
+            layers.Dense(16, activation="relu"),
             layers.Dense(2),  # Predicting two values: sin_nu and cos_nu
         ]
     )
