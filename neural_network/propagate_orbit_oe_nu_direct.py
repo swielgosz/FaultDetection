@@ -2,13 +2,10 @@
 
 import sys
 import os
-
-# Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from astro import visualization, coordinate_conversions
 import numpy as np
-
 import tensorflow as tf
 import random
 import pandas as pd
@@ -55,14 +52,14 @@ data = pd.DataFrame(
 )  # convert to data frame
 
 nu_record = data[["nu"]]
-t_max = data[['t']].max().values[0]
+t_max = data[["t"]].max().values[0]
 
 # Load cartesian data for plotting
 cartesian_data_path = os.path.join(script_dir, "../datasets/dataset_cartesian.npy")
 cartesian_data_np = np.load(cartesian_data_path)
 
 data.describe().transpose()
-#%%
+# %%
 # Record non time-varying orbital elements
 a = data_np[0, 1]  # Semi-major axis
 e = data_np[0, 2]  # Eccentricity
@@ -88,7 +85,9 @@ test_labels = test_data[["nu"]]
 feature_scaler = MinMaxScaler()
 label_scaler = MinMaxScaler()
 
-train_features = pd.DataFrame(feature_scaler.fit_transform(train_features), columns=train_features.columns)
+train_features = pd.DataFrame(
+    feature_scaler.fit_transform(train_features), columns=train_features.columns
+)
 
 train_labels = pd.DataFrame(
     label_scaler.fit_transform(train_labels), columns=train_labels.columns
@@ -102,12 +101,14 @@ test_labels = pd.DataFrame(
     label_scaler.transform(test_labels), columns=test_labels.columns
 )
 
+
 # Define the periodic loss function
 def periodic_loss(y_true, y_pred):
     error = tf.abs(y_true - y_pred)
     # Minimize the angular error considering the wraparound at 360 degrees
     error = tf.minimum(error, 360.0 - error)  
     return tf.reduce_mean(error)
+
 
 # Define and compile the model
 def build_and_compile_model(input_shape_):
@@ -156,7 +157,7 @@ def plot_loss(history):
 
 
 plot_loss(history)
-
+# %%
 # Create time array and reshape to 2D array
 time_ = np.linspace(0, t_max, len(data[["t"]])).reshape(-1, 1)
 
@@ -196,7 +197,9 @@ plt.title('Prediction Error vs. True Values')
 plt.grid(True)
 plt.show()
 
-time = np.linspace(0, t_max, len(predictions))  # Create a time array if not already available
+time = np.linspace(
+    0, t_max, len(predictions)
+)  # Create a time array if not already available
 
 plt.figure(figsize=(10, 6))
 plt.plot(time, error, label='Prediction Error')
@@ -236,3 +239,4 @@ test_loss = dnn_model.evaluate(test_features, test_labels, verbose=0)
 #         best_seed = seed
 
 # print(f"Best Seed: {best_seed}, Best Loss: {best_loss}")
+# # %%
