@@ -23,34 +23,57 @@ data_np = np.load(data_path, allow_pickle=True)
 features = []
 labels = []
 
+# Create features and labels
+# Convert degrees to radians to remove need for scaling
 for entry in data_np:
     initial_state = entry["initial_state"]  # a, e, i, RAAN, w, nu
-    trajectory = entry["trajectory"]  # Contains time and orbital elements over time
+    trajectory = entry["trajectory"]  # time, a, e, i, RAAN, w, nu
     cos_nu0 = np.cos(np.deg2rad(initial_state[5]))
     sin_nu0 = np.sin(np.deg2rad(initial_state[5]))
+
     # For each time step in the trajectory
     for state in trajectory:
-        time = state[0]  # Time from trajectory data
-        nu = state[5]  # True anomaly
+        time = state[0]
+        nu = state[6]
+        if np.isnan(nu):
+            continue
         sin_nu = np.sin(np.deg2rad(nu))
         cos_nu = np.cos(np.deg2rad(nu))
 
-        features.append(np.concatenate([[time], initial_state[:-1], [cos_nu0], [sin_nu0]]))  # Add initial state and time to features
-        labels.append(np.concatenate([state[1:-1], [sin_nu], [cos_nu]]))  # Add the orbital elements as labels
+        features.append(
+            np.array(
+                [
+                    time,  # Time as a scalar
+                    initial_state[0],  # a as a scalar
+                    initial_state[1],  # e as a scalar
+                    np.deg2rad(initial_state[2]),  # i in radians
+                    np.deg2rad(initial_state[3]),  # RAAN in radians
+                    np.deg2rad(initial_state[4]),  # w in radians
+                    cos_nu0,  # cos(nu0) as a scalar
+                    sin_nu0,  # sin(nu0) as a scalar
+                ]
+            )
+        )
 
-features = np.array(features)
-labels = np.array(labels)
+        labels.append(np.array([sin_nu, cos_nu]))  # Ensure labels are arrays too
 
+# Convert features and labels to DataFrames
+features = pd.DataFrame(features)
+labels = pd.DataFrame(labels)
 
-# Split data into train and test sets
-train_size = int(0.8 * len(features))
-train_features, test_features = features[:train_size], features[train_size:]
-train_labels, test_labels = labels[:train_size], labels[train_size:]
+# Define train and test features and labels
+train_features = features.sample(frac=0.8, random_state=0)
+test_features = features.drop(train_features.index)
 
-# Normalize features
+train_labels = labels.iloc[train_features.index]
+test_labels = labels.iloc[test_features.index]
+
+# Normalize time and semi-major axis
 feature_scaler = MinMaxScaler()
-train_features = feature_scaler.fit_transform(train_features)
-test_features = feature_scaler.transform(test_features)
+train_features.iloc[:, [0, 1]] = feature_scaler.fit_transform(
+    train_features.iloc[:, [0, 1]]
+)
+test_features.iloc[:, [0, 1]] = feature_scaler.transform(test_features.iloc[:, [0, 1]])
 
 # Define and compile the model
 def build_and_compile_model(input_shape_):
