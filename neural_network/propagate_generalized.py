@@ -180,33 +180,43 @@ def test_model():
 
 # Get predictions
 predictions = test_model()
-print("Predicted (a, e, i, RAAN, w, cos(nu), sin(nu)) for 10000 time steps:")
-print(predictions)
+# %% Visualize results
 
-#%%
-# Load cartesian data for plotting
+
+# Convert predictions to Cartesian coordinates for plotting
+def convert_predictions_to_cartesian(predicted_orbital_elements):
+    cartesian_coords = []
+    for idx in range(len(predicted_orbital_elements)):
+        time, a, e, i, raan, w, nu_pred = predicted_orbital_elements[idx]
+        # print(time)
+        print(nu_pred)
+        r, v = coordinate_conversions.standard_to_cartesian(a, e, i, raan, w, nu_pred)
+        cartesian_coords.append(
+            np.concatenate([[time], r, v])
+        )  # Concatenate position and velocity vectors
+    return np.array(cartesian_coords)
+
+
+cartesian_predictions = convert_predictions_to_cartesian(predictions)
 cartesian_data_path = os.path.join(script_dir, "../datasets/dataset_cartesian.npy")
 cartesian_data_np = np.load(cartesian_data_path)
-visualization.compare_orbits(cartesian_data_np, predictions)
-# # Predictions
-# predictions_scaled = dnn_model.predict(test_features)
+visualization.compare_orbits(cartesian_data_np, cartesian_predictions)
 
-# # Extract predictions
-# predicted_orbital_elements = predictions_scaled  # This will be the predicted (a, e, i, RAAN, w, cos(nu), sin(nu))
 
-# # Convert predictions to Cartesian coordinates for analysis
-# cartesian_coords = []
-# for idx in range(len(predicted_orbital_elements)):
-#     a, e, i, raan, w, cos_nu, sin_nu = predicted_orbital_elements[idx]
-#     nu_pred = np.rad2deg(np.arctan2(sin_nu, cos_nu))  # Convert back to true anomaly
-#     r, v = coordinate_conversions.standard_to_cartesian(a, e, i, raan, w, nu_pred)
-#     cartesian_coords.append(np.concatenate([r, v]))
-# cartesian_coords = np.array(cartesian_coords)
+# Calculate the prediction error of true anomaly
+oe_data_path = os.path.join(script_dir, "../datasets/dataset_oe.npy")
+oe_data_np = np.load(oe_data_path)
+nu_record = oe_data_np[
+    :, -1
+]  # Assuming the last column in predictions is the predicted nu
+error = predictions[:, -1] - nu_record
 
-# # Evaluation
-# train_loss = dnn_model.evaluate(train_features, train_labels, verbose=0)
-# test_loss = dnn_model.evaluate(test_features, test_labels, verbose=0)
-
-# print(f'Training Loss: {train_loss}')
-# print(f'Test Loss: {test_loss}')
-# %%
+# Plot the prediction error against true values
+plt.figure(figsize=(10, 6))
+plt.scatter(nu_record, error, s=2)  # Use scatter to visualize the error
+plt.xlabel("True Values (nu) [Degrees]")
+plt.ylabel("Prediction Error [Degrees]")
+plt.title("Prediction Error vs. True Values")
+plt.legend()
+plt.grid(True)
+plt.show()
