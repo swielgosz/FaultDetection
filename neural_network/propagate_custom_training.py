@@ -84,3 +84,37 @@ val_labels = label_scaler.transform(val_labels)
 
 test_features = feature_scaler.transform(test_features)
 test_labels = label_scaler.transform(test_labels)
+
+#%% Model
+def periodic_activation(x):
+    scale_max = 1.0
+    return tf.math.floormod(x, scale_max)
+
+inputs = keras.Input(shape=(train_features.shape[1],), name="nu")
+
+x1 = layers.Dense(16, activation="relu")(inputs)
+x2 = layers.Dense(16, activation="relu")(x1)
+x3 = layers.Dense(16, activation="relu")(x2)
+x4 = layers.Dense(16, activation="relu")(x3)
+outputs = layers.Dense(1, activation=periodic_activation)(x4)
+model = keras.Model(inputs=inputs, outputs=outputs)
+
+#Instantiate an optimizer
+optimizer = keras.optimizers.Adam(learning_rate=1e-3)
+
+#Instantiate a loss function
+loss_fn = keras.losses.mean_absolute_error
+
+# Prepare the training dataset
+batch_size = 1000
+train_dataset = tf.data.Dataset.from_tensor_slices((train_features, train_labels))
+# train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
+train_dataset = train_dataset.batch(batch_size)
+
+# Prepare the validation dataset.
+val_dataset = tf.data.Dataset.from_tensor_slices((val_features, val_labels))
+val_dataset = val_dataset.batch(batch_size)
+
+# Define metrics for tracking performance
+train_metric = metrics.MeanAbsoluteError()
+val_metric = metrics.MeanAbsoluteError()
