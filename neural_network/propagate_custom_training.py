@@ -159,3 +159,51 @@ for epoch in range(epochs):
 
     print("Validation acc: %.4f" % (float(val_mae),))
     print("Time taken: %.2fs" % (time.time() - start_time))
+# %% Visualize results
+# Create time array and reshape to 2D array
+time_ = np.linspace(0, t_max, len(data[["t"]])).reshape(-1, 1)
+
+# Convert to DataFrame with the same column name as used during scaling
+time_df = pd.DataFrame(time_, columns=["t"])
+
+# Normalize the time data
+time_scaled = pd.DataFrame(feature_scaler.transform(time_df), columns=["t"])
+predictions_scaled = model.predict(time_scaled)
+predictions = label_scaler.inverse_transform(predictions_scaled)
+
+# Calculate error between true and predicted values
+error = predictions - nu_ground_truth.values
+
+# Convert predictions to Cartesian coordinates
+cartesian_coords = []
+for pred in predictions:
+    nu = pred[0]
+    r, v = coordinate_conversions.standard_to_cartesian(a, e, i, raan, w, nu)
+    cartesian_coords.append(np.concatenate([r, v]))
+cartesian_coords = np.array(cartesian_coords)
+
+# Concatenate time data with predictions
+data_with_time = data_np[:, 0]  # Extract time column
+predictions_with_time = np.column_stack((data_with_time, cartesian_coords))
+
+# Plot orbits
+visualization.compare_orbits(cartesian_data_np, predictions_with_time)
+# %% Visualize error
+error = predictions - nu_ground_truth
+
+plt.figure(figsize=(10, 6))
+plt.scatter(nu_ground_truth, error, s=2)
+plt.xlabel("True Values (nu)")
+plt.ylabel("Prediction Error")
+plt.title("Prediction Error vs. True Values")
+plt.ylim(-10, 10)  # Set y-axis limits
+plt.grid(True)
+plt.show()
+
+# %% Evaluate losses
+# Compile the model
+model.compile(optimizer=optimizer, loss=loss_fn,metrics = ['mean_absolute_error'])
+train_loss = model.evaluate(train_features, train_labels, verbose=0)
+test_loss = model.evaluate(test_features, test_labels, verbose=0)
+print("Train loss:", train_loss)
+print("Test loss:", test_loss)
