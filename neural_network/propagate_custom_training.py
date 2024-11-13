@@ -49,3 +49,38 @@ cartesian_data_path = os.path.join(script_dir, "../datasets/dataset_cartesian.np
 cartesian_data_np = np.load(cartesian_data_path)
 
 data.describe().transpose()
+
+# %% Prepare data 
+# Record non time-varying orbital elements
+a = data_np[0, 1]  # Semi-major axis
+e = data_np[0, 2]  # Eccentricity
+i = data_np[0, 3]  # Inclination
+raan = data_np[0, 4]  # RAAN
+w = data_np[0, 5]  # Argument of periapsis
+
+# Separate features and labels
+features = data[["t"]]
+labels = data[["nu"]]
+
+# First split: 20% test, 80% train (we'll split train again for validation)
+train_features, test_features, train_labels, test_labels = train_test_split(
+    features, labels, test_size=0.2, random_state=0
+)
+
+# Second split on the 80% train data: 80% train, 20% validation
+train_features, val_features, train_labels, val_labels = train_test_split(
+    train_features, train_labels, test_size=0.2, random_state=0
+)
+
+# Normalize the data
+feature_scaler = MinMaxScaler()
+label_scaler = MinMaxScaler()
+
+train_features = feature_scaler.fit_transform(train_features)
+train_labels = label_scaler.fit_transform(train_labels)
+
+val_features = feature_scaler.transform(val_features)
+val_labels = label_scaler.transform(val_labels)
+
+test_features = feature_scaler.transform(test_features)
+test_labels = label_scaler.transform(test_labels)
