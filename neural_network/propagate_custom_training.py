@@ -118,3 +118,44 @@ val_dataset = val_dataset.batch(batch_size)
 # Define metrics for tracking performance
 train_metric = metrics.MeanAbsoluteError()
 val_metric = metrics.MeanAbsoluteError()
+
+# Train the model
+epochs = 100
+
+for epoch in range(epochs):
+    print(f"\nStart of epoch {epoch}")
+    start_time = time.time()
+
+    # Iterate over the batches of the dataset.
+    for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
+        with tf.GradientTape() as tape:
+            y_pred = model(x_batch_train, training=True)
+            # loss_value = loss_fn(y_batch_train, y_pred)
+            loss_value = tf.reduce_mean(loss_fn(y_batch_train, y_pred))
+        grads = tape.gradient(loss_value, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        # Update training metric.
+        train_metric.update_state(y_batch_train, y_pred)
+
+        # Log every 200 batches.
+        if step % 200 == 0:
+            print(
+                "Training loss (for one batch) at step %d: %.4f"
+                % (step, float(loss_value))
+            )
+            print("Seen so far: %d samples" % ((step + 1) * batch_size))
+
+    # End-of-epoch training metrics
+    train_mae = train_metric.result()
+    print("Training MAE over epoch: %.4f" % (float(train_mae),))
+
+    # Run a validation loop at the end of each epoch.
+    for x_batch_val, y_batch_val in val_dataset:
+        val_y_pred = model(x_batch_val, training=False)
+        # Update val metrics
+        val_metric.update_state(y_batch_val, val_y_pred)
+    val_mae = val_metric.result()
+
+    print("Validation acc: %.4f" % (float(val_mae),))
+    print("Time taken: %.2fs" % (time.time() - start_time))
