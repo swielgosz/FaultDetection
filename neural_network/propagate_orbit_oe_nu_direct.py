@@ -19,7 +19,7 @@ from sklearn.preprocessing import MinMaxScaler
 print(tf.__version__)
 
 # %%
-SEED = 8
+SEED = 1
 
 
 def set_seeds(seed=SEED):
@@ -29,18 +29,18 @@ def set_seeds(seed=SEED):
     np.random.seed(seed)
 
 
-def set_global_determinism(seed=SEED):
-    set_seeds(seed=seed)
+# def set_global_determinism(seed=SEED):
+#     set_seeds(seed=seed)
 
-    os.environ["TF_DETERMINISTIC_OPS"] = "1"
-    os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
+#     os.environ["TF_DETERMINISTIC_OPS"] = "1"
+#     os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
 
-    tf.config.threading.set_inter_op_parallelism_threads(1)
-    tf.config.threading.set_intra_op_parallelism_threads(1)
+#     tf.config.threading.set_inter_op_parallelism_threads(1)
+#     tf.config.threading.set_intra_op_parallelism_threads(1)
 
 
-# Call the above function with seed value
-set_global_determinism(seed=SEED)
+# # Call the above function with seed value
+# set_global_determinism(seed=SEED)
 # %% Load data from .npy file
 #    Data file contains timestep (s), semi-major axis a (km), eccentricity e (-), inclination i (deg), RAAN (deg), argument of periapsis w (deg), and true anomaly nu (deg)
 #    Orbital elements recorded for each timestep. tof will be constant in each row for one orbit
@@ -105,11 +105,31 @@ test_labels = pd.DataFrame(
 
 
 # Define the periodic loss function
+def to_360(angle):
+    return (angle % 360.0 + 360.0) % 360.0
+
+
 def periodic_loss(y_true, y_pred):
-    error = tf.abs(y_true - y_pred)
-    # Minimize the angular error considering the wraparound at 360 degrees
-    error = tf.minimum(error, 360.0 - error)
-    return tf.reduce_mean(error)
+    # Manually inverse transform within TensorFlow
+    # y_true_unscaled = y_true * (label_scaler.data_max_[0] - label_scaler.data_min_[0]) + label_scaler.data_min_[0]
+    # y_pred_unscaled = y_pred * (label_scaler.data_max_[0] - label_scaler.data_min_[0]) + label_scaler.data_min_[0]
+
+    y_true_unscaled = (y_true - label_scaler.min_) / label_scaler.scale_
+    y_pred_unscaled = (y_pred - label_scaler.min_) / label_scaler.scale_
+    # Compute angular difference and apply to_360 to ensure angle is between 0 and 360
+    diff = tf.abs(to_360(y_true_unscaled) - to_360(y_pred_unscaled))
+    angular_diff = tf.minimum(diff, 360.0 - diff)
+
+    # Scale angular difference back to normalized scale
+    angular_diff_scaled = angular_diff / (label_scaler.data_max_[0] - label_scaler.data_min_[0])
+
+    return tf.reduce_mean(angular_diff)
+
+
+def periodic_activation(x):
+    scale_max = 1.0
+    return x % scale_max
+    # return tf.math.floormod(x, scale_max)
 
 
 # Define and compile the model
@@ -118,14 +138,20 @@ def build_and_compile_model(input_shape_):
         [
             # tf.keras.Input(shape=(input_shape,)),
             tf.keras.layers.Flatten(input_shape=(input_shape_,)),
+            layers.Dense(64, activation="relu"),
+            # layers.Dense(32, activation="relu"),
             layers.Dense(16, activation="relu"),
-            layers.Dense(16, activation="relu"),
-            layers.Dense(16, activation="relu"),
-            layers.Dense(16, activation="relu"),
+            layers.Dense(8, activation="relu"),
             layers.Dense(1),
+            # layers.Dense(16, activation="relu"),
+            # layers.Dense(16, activation="relu"),
+            # layers.Dense(8, activation="relu"),
+            # layers.Dense(4, activation="relu"),
+            # layers.Dense(1),
+            # layers.Dense(1, activation=periodic_activation),
         ]
     )
-    model.compile(loss="mean_absolute_error", optimizer=tf.keras.optimizers.Adam(0.001))
+    model.compile(loss=periodic_loss, optimizer=tf.keras.optimizers.Adam(0.001))
     return model
 
 
@@ -134,15 +160,18 @@ dnn_model = build_and_compile_model(input_shape_)
 dnn_model.summary()
 
 # %%
-BATCH_SIZE = 500
+BATCH_SIZE = 1000
+from tensorflow.keras.callbacks import ReduceLROnPlateau
+lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=200, min_lr=1e-6)
+
 history = dnn_model.fit(
     train_features,
     train_labels,
     validation_split=0.2,  # if validation split is low (~0.1), results are very bad (error is ~100 deg instead of ~50 at beginning/end of orbit)
     verbose=1,
-    epochs=200,
+    epochs=1000,
     batch_size=BATCH_SIZE,
-    shuffle=False,
+    callbacks = [lr_scheduler],
 )
 
 # %%
@@ -170,7 +199,7 @@ time_df = pd.DataFrame(time_, columns=["t"])
 time_scaled = pd.DataFrame(feature_scaler.transform(time_df), columns=["t"])
 predictions_scaled = dnn_model.predict(time_scaled)
 predictions = label_scaler.inverse_transform(predictions_scaled)
-
+# predictions = periodic_activation(label_scaler.inverse_transform(predictions_scaled))
 # Convert predictions to Cartesian coordinates
 cartesian_coords = []
 for pred in predictions:
@@ -186,16 +215,17 @@ predictions_with_time = np.column_stack((data_with_time, cartesian_coords))
 # Plot orbits
 visualization.compare_orbits(cartesian_data_np, predictions_with_time)
 # %%
-error = predictions - nu_record
+error = np.abs(to_360(predictions) - nu_record)
 # for idx in range(len(error)):
 #     if abs(error[idx]) > 180:
 #         error[idx] = 360 - abs(error[idx])
 
 plt.figure(figsize=(10, 6))
-plt.plot(nu_record, error)
+plt.scatter(nu_record, error, s=2)
 plt.xlabel("True Values (nu)")
 plt.ylabel("Prediction Error")
 plt.title("Prediction Error vs. True Values")
+plt.ylim(-10, 10)  # Set y-axis limits
 plt.grid(True)
 plt.show()
 
@@ -209,36 +239,9 @@ plt.xlabel("Time")
 plt.ylabel("Prediction Error")
 plt.title("Prediction Error Over Time")
 plt.legend()
+# plt.ylim(-10, 10)  # Set y-axis limits
 plt.grid(True)
 plt.show()
 # %%
 train_loss = dnn_model.evaluate(train_features, train_labels, verbose=0)
 test_loss = dnn_model.evaluate(test_features, test_labels, verbose=0)
-
-# best_seed = None
-# best_loss = float('inf')
-# seed_range = range(10)  # You can adjust this range to explore more seeds
-
-# for seed in seed_range:
-#     set_global_determinism(seed=seed)
-#     dnn_model = build_and_compile_model(input_shape_)
-#     history = dnn_model.fit(
-#         train_features,
-#         train_labels,
-#         validation_split=0.2,
-#         verbose=0,
-#         epochs=50,
-#         batch_size=BATCH_SIZE,
-#         shuffle=False,
-#     )
-
-#     # Evaluate the model
-#     test_loss = dnn_model.evaluate(test_features, test_labels, verbose=0)
-#     print(f"Seed: {seed}, Test Loss: {test_loss}")
-
-#     if test_loss < best_loss:
-#         best_loss = test_loss
-#         best_seed = seed
-
-# print(f"Best Seed: {best_seed}, Best Loss: {best_loss}")
-# # %%
