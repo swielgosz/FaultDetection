@@ -196,3 +196,76 @@ def main(
 
 
 ts, ys, model = main()
+# %%
+# Extract predicted sin_nu and cos_nu from the model
+predicted_sin_cos = model(ts, ys[0, 0])  # Get predictions
+predicted_sin_nu = predicted_sin_cos[:, 0]
+predicted_cos_nu = predicted_sin_cos[:, 1]
+
+# Convert sin and cos back to true anomaly in degrees
+predicted_nu = np.rad2deg(np.arctan2(predicted_sin_nu, predicted_cos_nu)) % 360
+
+
+# Inverse scale the time data back to the original scale
+unscaled_ts = feature_scaler.inverse_transform(ts.reshape(-1, 1)).flatten()
+time_ = np.linspace(0, t_max, len(data_np)).reshape(-1, 1)
+
+time_scaled = feature_scaler.transform(time_).flatten()
+predicted_sin_cos = model(time_scaled, ys[0, 0])  # Get predictions
+predicted_sin_nu = predicted_sin_cos[:, 0]
+predicted_cos_nu = predicted_sin_cos[:, 1]
+
+# Convert sin and cos back to true anomaly in degrees
+predicted_nu = np.rad2deg(np.arctan2(predicted_sin_nu, predicted_cos_nu)) % 360
+
+# %%
+# Plotting
+plt.figure(figsize=(10, 6))
+plt.plot(
+    time_,
+    nu_ground_truth,
+    label="True True Anomaly (Ground Truth)",
+    color="dodgerblue",
+)
+plt.plot(
+    time_,
+    predicted_nu,
+    label="Predicted True Anomaly",
+    color="crimson",
+    linestyle="dashed",
+)
+plt.xlabel("Time (Original Scale)")
+plt.ylabel("True Anomaly (degrees)")
+plt.title("True Anomaly Prediction vs Ground Truth")
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.savefig("true_anomaly_comparison_unscaled_time.png")
+plt.show()
+
+# %% Save model
+import equinox as eqx
+
+# Save the trained model
+save_path = "neural_ode_model.eqx"
+eqx.tree_serialise_leaves(save_path, model)
+print(f"Model saved to {save_path}")
+
+# %%
+error = nu_ground_truth - predicted_nu
+
+for idx in range(len(error)):
+    if abs(error[idx]) > 180:
+        error[idx] = 360 - abs(error[idx])
+
+plt.figure(figsize=(10, 6))
+plt.scatter(nu_ground_truth, error, s=2)
+plt.xlabel("True Values (nu)")
+plt.ylabel("Prediction Error")
+plt.title("Prediction Error vs. True Values")
+plt.grid(True)
+plt.show()
+
+rmse = np.sqrt(np.mean(error**2))
+print(f"RMSE: {rmse:.2f}")
+# %%
