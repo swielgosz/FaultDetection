@@ -9,7 +9,7 @@ from astro import astro_calcs, constants, visualization
 import numpy as np
 
 
-def num_1():
+def generate_single_healthy_orbit():
 
     dataset_oe = []
     dataset_cartesian = []
@@ -60,16 +60,5 @@ def num_1():
     print(f"\nCartesian dataset saved to {output_path_cartesian}")
 
 
-def num_2():
-
-    # Define string labels
-    string_labels = np.array(["tof", "t", "a", "e", "i", "omega", "w", "nu"], dtype=str)
-
-    # Save to a .npy file
-    np.save("../datasets/string_labels.npy", string_labels)
-
-
-print("String labels saved to 'string_labels.npy'")
 if __name__ == "__main__":
-    num_1()
-    num_2()
+    generate_single_healthy_orbit()

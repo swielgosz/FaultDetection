@@ -137,7 +137,7 @@ def test_model():
     tof = astro_calcs.calculate_orbital_period(a, mu=constants.MU_EARTH)
 
     # Generate 1000 time steps from 0 to tof
-    time_steps = np.linspace(0, tof, 10000)
+    time_steps = np.linspace(0, tof, 1000)
 
     # Prepare features for all time steps
     features = []
